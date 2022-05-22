@@ -21,7 +21,7 @@ class Layer:
         raise NotImplementedError
 
 # Fully Connected layer
-class FCLayer(Layer):
+class Dense(Layer):
     # input_size = number of input neurones
     # output_size = number of output neurones
     def __init__(self, input_size, output_size):
