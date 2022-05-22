@@ -1,8 +1,5 @@
 # -> imports
-from cgitb import text
 from random import randint
-from tkinter.tix import Tree
-from numpy import tile
 import pygame
 import bots
 import sys
@@ -16,9 +13,13 @@ pygame.display.set_caption('Hide and Seek Simulation - Francis Lee')
 pygame.display.set_icon(pygame.image.load('Assets/icon.png'))
 
 # -> helper function definitions
-def genPool(seekerCount, hiderCount, seekerSpawn, hiderSpawn):
-    seekers = [bots.Seeker(seekerSpawn[0], seekerSpawn[1]) for _ in range(seekerCount)]
-    hiders  = [bots.Hider(hiderSpawn[0], hiderSpawn[1]) for _ in range(hiderCount)]
+def genPool(seekerCount, hiderCount, seekerSpawn, hiderSpawn, metaSeeker = None, metaHider = None):
+    if not metaSeeker:
+        seekers = [bots.Seeker(seekerSpawn[0], seekerSpawn[1]) for _ in range(seekerCount)]
+        hiders  = [bots.Hider(hiderSpawn[0], hiderSpawn[1]) for _ in range(hiderCount)]
+    else:
+        seekers = [metaSeeker.reproduce(seekerSpawn[0], seekerSpawn[1]) for _ in range(seekerCount)]
+        hiders =  [metaHider.reproduce(hiderSpawn[0], hiderSpawn[1]) for _ in range(hiderCount)]
     return seekers, hiders
 
 def drawBG(screen, tilemap, tilesize):
@@ -49,10 +50,14 @@ hiders = []
 seekers = []
 stage = 0
 tilesize = 20
-tilemap = [[0 for _ in range(screenSize[0] // tilesize)] for _ in range(screenSize[1] // tilesize)]
+tilemap = [[1 for _ in range(screenSize[0] // tilesize)]]
+middle = [[1] + [0 for _ in range(screenSize[0] // tilesize - 2)] + [1] for _ in range(screenSize[1] // tilesize - 2)]
+for i in middle:tilemap.append(i)
+tilemap.append([1 for _ in range(screenSize[0] // tilesize)])
 clicked = False
 
 # -> game loop
+gameTimer = 0
 clock = pygame.time.Clock()
 while True:
     # -> event loop
@@ -94,7 +99,19 @@ while True:
     # --> main creature updates
     for creature in creatures:
         creature.update(tiles, creatures)
-    
+        if hiders:
+            bestHider = max(hiders, key=lambda x:x.lifetime)
+        if seekers:
+            bestSeeker = max(seekers, key=lambda x:x.kills)
+
+    if stage == 3:
+        print(gameTimer)
+        if not hiders or gameTimer > clock.get_fps() * 20:
+            # -> seekers win
+            seekers, hiders = genPool(5, 5, seekerSpawnLoc, hiderSpawnLoc, bestSeeker, bestHider)
+            creatures = seekers + hiders
+            gameTimer = 0
+
     # --> checking for kills
     if stage == 3:
         for hider in hiders:
@@ -114,6 +131,7 @@ while True:
         stage += 1
         # -> spawn the creatures
         seekers, hiders = genPool(5, 5, seekerSpawnLoc, hiderSpawnLoc)
+        gameTimer = 0
         creatures = seekers + hiders
 
     # -> render
@@ -140,6 +158,7 @@ while True:
         pygame.draw.circle(screen, (238, 255, 5), hiderSpawnLoc, 5)
     
     # -> draw selected square indicator
+    gameTimer += 1
     if stage < 3:
         pygame.draw.rect(screen, (160, 160, 160), (selectedTile[0] * tilesize, selectedTile[1] * tilesize, tilesize, tilesize), 2)
     # -> clean up

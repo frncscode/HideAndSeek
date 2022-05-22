@@ -28,7 +28,7 @@ class Sensor:
         for ray in range(1, self.rayCount + 1):
             angle = self.bot.angle + (- self.fov / 2) + self.fov * (ray / self.rayCount)
             radians = math.radians(angle)
-            for dist in range(0, self.rayLength, 2): # -> we use a step for optimization
+            for dist in range(0, self.rayLength, 4): # -> we use a step for optimization
                 pos = (self.bot.pos.x - math.sin(radians) * dist,
                        self.bot.pos.y - math.cos(radians) * dist)
                 hit = False

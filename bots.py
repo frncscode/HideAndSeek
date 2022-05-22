@@ -41,6 +41,8 @@ class Bot:
         self.rect = pygame.Rect(self.pos.x - self.radius, self.pos.y - self.radius, self.radius * 2, self.radius * 2)
         self.angle = 0 # -> degrees
         self.rays = []
+        self.lifetime = 0
+        self.kills = 0
         self.selected = False
         self.rayIntersects = []
 
@@ -109,22 +111,51 @@ class Bot:
 
         self.rect.center = self.pos
 
+    def mutate(self, child):
+        childNetwork = child.network
+        for _ in range(4):
+            layer = random.choice([layer for layer in childNetwork.layers if not isinstance(layer, network.ActivationLayer)])
+            if random.random() < 0.5:
+                # -> mutate weights
+                print('mutating weights')
+                layer.weights[random.randint(0, len(layer.weights) - 1)] = 0.5 - random.random()
+            else:
+                print('mutating bias')
+                # -> mutate biases
+                layer.bias[random.randint(0, len(layer.bias) - 1)] = 0.5 - random.random()
+        return child
 
 class Hider(Bot):
     def __init__(self, x, y):
         self.fov = 360
+        self.kills = 0
         super().__init__(x, y)
         self.colour = (0, 255, 0)
         self.topSpeed = 4
         self.type = 'HIDER'
-        self.sensor = sensor.Sensor(self, self.fov, 50, 10)
+        self.sensor = sensor.Sensor(self, self.fov, 52, 10)
+    
+    def reproduce(self, x, y):
+        child = Hider(x, y)
+        if random.random() < 0.4: # -> 40% chance of mutation
+            print('MUTATION IN REPO')
+            return self.mutate(child)
+        return child
 
 class Seeker(Bot):
     def __init__(self, x, y):
         self.fov = 60
+        self.lifetime = 0
         super().__init__(x, y)
         self.colour = (255, 0, 0)
         self.fov = 60
         self.topSpeed = 5
         self.type = 'SEEKER'
         self.sensor = sensor.Sensor(self, self.fov, 100, 10)
+
+    def reproduce(self, x, y):
+        child = Seeker(x, y)
+        if random.random() < 0.4: # -> 40% chance of mutation
+            print('MUTATE on reproduce')
+            return self.mutate(child)
+        return child
